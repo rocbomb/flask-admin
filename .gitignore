@@ -28,3 +28,4 @@ env
 .eggs
 .tox/
 .env
+/examples/auth-flask-login/logs
