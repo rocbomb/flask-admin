@@ -108,13 +108,16 @@ class LoginForm(form.Form):
         user = self.get_user()
 
         if user is None:
-            raise validators.ValidationError("Invalid user")
+            raise validators.ValidationError("用户不存在")
+    
+        if not user.is_admin:
+            raise validators.ValidationError("该用户不是管理员")
 
         # we're comparing the plaintext pw with the the hash from the db
         if not user.password == self.password.data:
             # to compare plain text passwords use
             # if user.password != self.password.data:
-            raise validators.ValidationError("Invalid password")
+            raise validators.ValidationError("密码错误")
 
     def get_user(self):
         return db.session.query(User).filter_by(login=self.login.data).first()
@@ -248,7 +251,7 @@ def build_sample_db():
         user.login = student["phone"]
         user.phone = student["phone"]
 
-        user.is_admin = user.login in ["17855860372"]
+        user.is_admin = str(user.login) in ["17855860372"]
 
         user.password = str(student["password"])
         user.courses_list = student["courses"]
