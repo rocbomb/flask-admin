@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>学生信息表</title>
+    <style>
+        .pass {
+            color: green;
+        }
+        .fail {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>学生信息表</h1>
+    <table border="1">
+        <tr>
+            <th>学生姓名</th>
+            <th>课程名</th>
+            <th>是否完成</th>
+            <th>视频时长（分钟）</th>
+            <th>学习时长（分钟）</th>
+        </tr>
+        {% for student in student_info %}
+        <tr>
+            <td>{{ student['name'] }}</td>
+            <td>{{ student['course'] }}</td>
+            <td class="{% if student['over'] == '完成' %}pass{% else %}fail{% endif %}">{{ student['over'] }}</td>
+            <td>{{ student['video_time'] }}</td>
+            <td>{{ student['study_time'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

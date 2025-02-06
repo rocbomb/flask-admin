@@ -18,6 +18,29 @@ from wtforms import fields
 from wtforms import form
 from wtforms import validators
 
+from couse import CourseList
+from student import students_data
+import logging
+from logging.handlers import TimedRotatingFileHandler
+
+
+# 配置日志
+log_path = './logs/logfile.log'  # 日志文件的路径
+if not os.path.exists(os.path.dirname(log_path)):
+    os.makedirs(os.path.dirname(log_path))
+
+
+# 设置日志格式
+log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(level=logging.INFO, format=log_format)
+
+# 设置日志轮转
+handler = TimedRotatingFileHandler(log_path, when='midnight', interval=1, backupCount=30)
+handler.setFormatter(logging.Formatter(log_format))
+logger = logging.getLogger('my_logger')
+logger.addHandler(handler)
+
+
 # Create Flask application
 app = Flask(__name__)
 
@@ -25,20 +48,22 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = "123456790"
 
 # Create in-memory database
-app.config["DATABASE_FILE"] = "sample_db.sqlite"
+app.config["DATABASE_FILE"] = "test2.sqlite"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + app.config["DATABASE_FILE"]
 app.config["SQLALCHEMY_ECHO"] = True
 db = SQLAlchemy(app)
 
 
+
 # Create user model.
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(100))
-    last_name = db.Column(db.String(100))
-    login = db.Column(db.String(80), unique=True)
-    email = db.Column(db.String(120))
+    name = db.Column(db.String(100))
+    login = db.Column(db.String(100), unique=True)
+    phone = db.Column(db.String(80))
     password = db.Column(db.String(64))
+    courses_list = db.Column(db.String(256))
+    is_admin = db.Column(db.Boolean)
 
     # Flask-Login integration
     # NOTE: is_authenticated, is_active, and is_anonymous
@@ -60,8 +85,19 @@ class User(db.Model):
 
     # Required for administrative interface
     def __unicode__(self):
-        return self.username
+        return self.name
 
+class Course(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    desc = db.Column(db.String(256))
+
+class CourseVideo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    course_id = db.Column(db.Integer)
+    name = db.Column(db.String(100))
+    desc = db.Column(db.String(256))
+    time = db.Column(db.Integer)
 
 # Define login and registration forms (for flask-login)
 class LoginForm(form.Form):
@@ -75,7 +111,7 @@ class LoginForm(form.Form):
             raise validators.ValidationError("Invalid user")
 
         # we're comparing the plaintext pw with the the hash from the db
-        if not check_password_hash(user.password, self.password.data):
+        if not user.password == self.password.data:
             # to compare plain text passwords use
             # if user.password != self.password.data:
             raise validators.ValidationError("Invalid password")
@@ -147,7 +183,7 @@ class MyAdminIndexView(admin.AdminIndexView):
             form.populate_obj(user)
             # we hash the users password to avoid saving it as plaintext in the db,
             # remove to use plain text:
-            user.password = generate_password_hash(form.password.data)
+            user.password = form.password.data
 
             db.session.add(user)
             db.session.commit()
@@ -202,79 +238,28 @@ def build_sample_db():
     db.create_all()
     # passwords are hashed, to use plaintext passwords instead:
     # test_user = User(login="test", password="test")
-    test_user = User(login="test", password=generate_password_hash("test"))
+    test_user = User(login="test", phone="test", name = "test", password="test")
     db.session.add(test_user)
 
-    first_names = [
-        "Harry",
-        "Amelia",
-        "Oliver",
-        "Jack",
-        "Isabella",
-        "Charlie",
-        "Sophie",
-        "Mia",
-        "Jacob",
-        "Thomas",
-        "Emily",
-        "Lily",
-        "Ava",
-        "Isla",
-        "Alfie",
-        "Olivia",
-        "Jessica",
-        "Riley",
-        "William",
-        "James",
-        "Geoffrey",
-        "Lisa",
-        "Benjamin",
-        "Stacey",
-        "Lucy",
-    ]
-    last_names = [
-        "Brown",
-        "Smith",
-        "Patel",
-        "Jones",
-        "Williams",
-        "Johnson",
-        "Taylor",
-        "Thomas",
-        "Roberts",
-        "Khan",
-        "Lewis",
-        "Jackson",
-        "Clarke",
-        "James",
-        "Phillips",
-        "Wilson",
-        "Ali",
-        "Mason",
-        "Mitchell",
-        "Rose",
-        "Davis",
-        "Davies",
-        "Rodriguez",
-        "Cox",
-        "Alexander",
-    ]
-
-    for i in range(len(first_names)):
+    for student in students_data:
         user = User()
-        user.first_name = first_names[i]
-        user.last_name = last_names[i]
-        user.login = user.first_name.lower()
-        user.email = user.login + "@example.com"
-        user.password = generate_password_hash(
-            "".join(
-                random.choice(string.ascii_lowercase + string.digits) for i in range(10)
-            )
-        )
+        user.name = student["name"]
+
+        user.login = student["phone"]
+        user.phone = student["phone"]
+
+        user.is_admin = user.login in ["17855860372"]
+
+        user.password = str(student["password"])
+        user.courses_list = student["courses"]
         db.session.add(user)
 
     db.session.commit()
     return
+
+
+
+
 
 
 if __name__ == "__main__":
