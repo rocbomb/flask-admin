@@ -3,7 +3,6 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Integer, String, ForeignKey, Time
 from sqlalchemy.orm import relationship
 from couse import CourseList
-from student import students_data
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -26,7 +25,7 @@ logger.addHandler(handler)
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test2.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test2.sqlite'
 db = SQLAlchemy(app)
 app.template_folder = os.path.join(os.getcwd(), 'html')
 
@@ -36,20 +35,58 @@ class StudyRecord(db.Model):
     course_id = db.Column(db.Integer, nullable=False)
     study_time = db.Column(db.Integer, nullable=False)
 
+# Create user model.
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    login = db.Column(db.String(100), unique=True)
+    phone = db.Column(db.String(80))
+    password = db.Column(db.String(64))
+    courses_list = db.Column(db.String(256))
+    is_admin = db.Column(db.Boolean)
+
+    # Flask-Login integration
+    # NOTE: is_authenticated, is_active, and is_anonymous
+    # are methods in Flask-Login < 0.3.0
+    @property
+    def is_authenticated(self):
+        return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return self.id
+
+    # Required for administrative interface
+    def __unicode__(self):
+        return self.name
+    
+    def getCourseList(self):
+        return self.courses_list.split('|')
+
 
 @app.route('/api/result')
 def studentInfos():
     result = []
     records = StudyRecord.query.all()
+
+    students_data = db.session.query(User).all()
+
     for student_info in students_data:
         for course_info in CourseList:
-            if not course_info["type"] in student_info["courses_list"]:
+            if not course_info["type"] in student_info.getCourseList():
                 continue
 
             record = None
             for r in records:
-                logger.info(f"{r.student_id}  {student_info['id']}")
-                if r.student_id == student_info['id'] and r.course_id == course_info['id']:
+                logger.info(f"{r.student_id}  {student_info.id}")
+                if r.student_id == student_info.id and r.course_id == course_info['id']:
                     record = r
                     break
                 continue
@@ -57,7 +94,7 @@ def studentInfos():
             if record != None and record.study_time / 60 + 1 > course_info['time']:
                 over = "完成"
             info = {
-                'name': student_info['name'],
+                'name': student_info.name,
                 'course': course_info['name'],
                 'over': over,
                 'video_time': course_info['time'],
@@ -100,16 +137,11 @@ def update_records():
     return f"{course_id},{record.study_time}", 200
 
 def findStudent(phone):
-    for user in students_data:
-        if str(user["phone"]) == str(phone):
-            return user
-    return None
+    return db.session.query(User).filter_by(login=phone).first()
 
 def findStudentById(id):
-    for user in students_data:
-        if user["id"] == id:
-            return user
-    return None
+    return db.session.query(User).filter_by(id=id).first()
+
 
 def findCourse(id):
     for c in CourseList:
@@ -129,20 +161,20 @@ def login():
         logger.info(f"login no user userid:{userid} ")
         return {'id': -1, "error": "没有该用户"}, 201
 
-    if str(student["password"]) != str(password):
+    if str(student.password) != str(password):
         logger.info(f"login password error userid:{userid} ")
         return {'id': -1, "error": "密码错误"}, 201
 
-    records = StudyRecord.query.filter_by(student_id = student["id"]).all()
+    records = StudyRecord.query.filter_by(student_id = student.id).all()
 
     videos = []
     for course in CourseList:
-        if course["type"] in student["courses_list"]:
+        if course["type"] in student.getCourseList():
             videos.append(course)
 
     ret = {
-        'id': student["id"],
-        "name" : student["name"],
+        'id': student.id,
+        "name" : student.name,
         "videos":videos,
         "records":[{'course_id': r.course_id, 'study_time': r.study_time} for r in records]
     }
@@ -154,6 +186,10 @@ def login():
 def create_db():
     with app.app_context():
         db.create_all()
+        alluser = db.session.query(User).all()
+        for user in alluser:
+            print(user.id, user.name)
+
 
 if __name__ == '__main__':
     create_db()

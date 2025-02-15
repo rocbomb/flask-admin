@@ -241,9 +241,6 @@ def build_sample_db():
     db.create_all()
     # passwords are hashed, to use plaintext passwords instead:
     # test_user = User(login="test", password="test")
-    test_user = User(login="test", phone="test", name = "test", password="test")
-    db.session.add(test_user)
-
     for student in students_data:
         user = User()
         user.name = student["name"]
@@ -261,10 +258,6 @@ def build_sample_db():
     return
 
 
-
-
-
-
 if __name__ == "__main__":
     # Build a sample db on the fly, if one does not exist yet.
     app_dir = os.path.realpath(os.path.dirname(__file__))
@@ -274,4 +267,5 @@ if __name__ == "__main__":
             build_sample_db()
 
     # Start app
-    app.run(debug=True)
+    #app.run(debug=True, port=5001)
+    app.run(debug=True, port=5001)
