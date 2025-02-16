@@ -5,7 +5,7 @@ FROM python
 WORKDIR /app
 
 # 复制代码到容器中
-COPY ./examples/auth .
+COPY ./examples/auth-flask-login .
 
 # 安装 Flask
 RUN pip install --no-cache-dir  -r req.txt --pre
