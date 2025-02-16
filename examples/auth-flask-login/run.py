@@ -25,6 +25,7 @@ logger.addHandler(handler)
 
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = "123456790"
 app.config["DATABASE_FILE"] = "test2.sqlite"
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + app.config["DATABASE_FILE"]
 db = SQLAlchemy(app)
