@@ -25,7 +25,8 @@ logger.addHandler(handler)
 
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test2.sqlite'
+app.config["DATABASE_FILE"] = "test2.sqlite"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + app.config["DATABASE_FILE"]
 db = SQLAlchemy(app)
 app.template_folder = os.path.join(os.getcwd(), 'html')
 
@@ -154,6 +155,7 @@ def login():
     userid = request.json.get('userid')
     password = request.json.get('password')
 
+    userid = userid.strip()
     logger.info(f"login start userid:{userid} password:{password}")
     student = findStudent(userid)
 
