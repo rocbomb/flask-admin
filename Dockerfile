@@ -8,7 +8,7 @@ WORKDIR /app
 COPY ./examples/auth .
 
 # 安装 Flask
-RUN pip install -r req.txt --pre
+RUN pip install --no-cache-dir  -r req.txt --pre
 
 # 暴露容器的端口
 EXPOSE 5001
