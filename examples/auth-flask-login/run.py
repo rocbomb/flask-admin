@@ -87,7 +87,7 @@ def studentInfos():
 
             record = None
             for r in records:
-                logger.info(f"{r.student_id}  {student_info.id}")
+                #logger.info(f"{r.student_id}  {student_info.id}")
                 if r.student_id == student_info.id and r.course_id == course_info['id']:
                     record = r
                     break
